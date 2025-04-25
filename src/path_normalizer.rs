@@ -5,6 +5,8 @@ use rnix::ast::Attrpath;
 
 /// Converts an `Attrpath` node into a dot-separated key string.
 pub fn normalize_path(ap: &Attrpath) -> String {
-    ap.attrs().map(|a| a.to_string()).collect::<Vec<_>>().join(".")
+    ap.attrs()
+        .map(|a| a.to_string())
+        .collect::<Vec<_>>()
+        .join(".")
 }
-

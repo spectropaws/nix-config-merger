@@ -1,8 +1,8 @@
 // merger.rs
 //! Logic to merge two maps of key-value pairs into nested Nix attribute blocks.
 
-use std::collections::HashMap;
 use rnix::ast::Expr;
+use std::collections::HashMap;
 
 /// A node in the nested attribute tree: either a leaf value or a subtree.
 #[derive(Clone)]
@@ -17,7 +17,8 @@ fn insert_node(tree: &mut HashMap<String, Node>, path: &[String], value: Expr) {
         tree.insert(path[0].clone(), Node::Leaf(value));
     } else {
         let head = &path[0];
-        let sub = tree.entry(head.clone())
+        let sub = tree
+            .entry(head.clone())
             .or_insert_with(|| Node::Tree(HashMap::new()));
         match sub {
             Node::Tree(m) => insert_node(m, &path[1..], value),
@@ -59,10 +60,7 @@ fn build_tree(flat: HashMap<String, Expr>) -> HashMap<String, Node> {
 }
 
 /// Merges two flat maps into a nested, merged tree and serializes it.
-pub fn merge_maps(
-    old_map: HashMap<String, Expr>,
-    new_map: HashMap<String, Expr>,
-) -> String {
+pub fn merge_maps(old_map: HashMap<String, Expr>, new_map: HashMap<String, Expr>) -> String {
     let old_tree = build_tree(old_map);
     let new_tree = build_tree(new_map);
     let mut full = old_tree;
@@ -75,55 +73,50 @@ pub fn merge_maps(
         full.insert(k, merged);
     }
 
-
     /// Serialize with improved newlines for prettiness
     fn serialize(tree: &HashMap<String, Node>, indent: usize) -> String {
-    let mut out = String::new();
-    let pad = "  ".repeat(indent);
+        let mut out = String::new();
+        let pad = "  ".repeat(indent);
 
-    // 1. Collect entries into a Vec so we can see "what comes next"
-    let entries: Vec<_> = tree.iter().collect();
-    // (Optional) Sort to stabilize output; remove if you want insertion order
-    // entries.sort_by_key(|(k, _)| *k);
+        // 1. Collect entries into a Vec so we can see "what comes next"
+        let entries: Vec<_> = tree.iter().collect();
+        // (Optional) Sort to stabilize output; remove if you want insertion order
+        // entries.sort_by_key(|(k, _)| *k);
 
-    let len = entries.len();
-    for (i, (k, node)) in entries.into_iter().enumerate() {
-        match node {
-            Node::Leaf(expr) => {
-                out.push_str(&format!("{}{} = {};\n", pad, k, expr));
-            }
-            Node::Tree(sub) => {
-                // 2-level shortcut (e.g. openssh.authorizedKeys.keys = …)
-                if sub.len() == 1 {
-                    let (child_k, child_node) = sub.iter().next().unwrap();
-                    if let Node::Leaf(expr) = child_node {
-                        out.push_str(&format!("{}{}.{} = {};\n",
-                            pad, k, child_k, expr));
-                        continue;
-                    }
+        let len = entries.len();
+        for (i, (k, node)) in entries.into_iter().enumerate() {
+            match node {
+                Node::Leaf(expr) => {
+                    out.push_str(&format!("{}{} = {};\n", pad, k, expr));
                 }
+                Node::Tree(sub) => {
+                    // 2-level shortcut (e.g. openssh.authorizedKeys.keys = …)
+                    if sub.len() == 1 {
+                        let (child_k, child_node) = sub.iter().next().unwrap();
+                        if let Node::Leaf(expr) = child_node {
+                            out.push_str(&format!("{}{}.{} = {};\n", pad, k, child_k, expr));
+                            continue;
+                        }
+                    }
 
-                // Normal block
-                out.push_str(&format!("{}{} = {{\n", pad, k));
-                out.push_str(&serialize(sub, indent + 1));
-                out.push_str(&format!("{}}};\n", pad));
+                    // Normal block
+                    out.push_str(&format!("{}{} = {{\n", pad, k));
+                    out.push_str(&serialize(sub, indent + 1));
+                    out.push_str(&format!("{}}};\n", pad));
 
-                //  • If this isn’t the last entry in *this* block, add one blank line
-                if i + 1 < len {
-                    out.push_str("\n");
+                    //  • If this isn’t the last entry in *this* block, add one blank line
+                    if i + 1 < len {
+                        out.push_str("\n");
+                    }
                 }
             }
         }
+
+        out
     }
 
-    out
-}
-
-    let mut out = String::from("{
-
-");
+    let mut out = String::from("{\n\n");
     out.push_str(&serialize(&full, 1));
-    out.push_str("}
-");
+    out.push_str("}\n");
     out
 }

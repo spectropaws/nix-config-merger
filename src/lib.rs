@@ -3,8 +3,8 @@
 //! using rnix-parser (v0.12.0) and rowan (v0.15.x), with support for top-level lambdas.
 
 pub mod ast_utils;
-pub mod path_normalizer;
 pub mod merger;
+pub mod path_normalizer;
 
 use std::error::Error;
 

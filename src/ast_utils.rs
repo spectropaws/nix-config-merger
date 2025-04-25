@@ -1,10 +1,10 @@
 // ast_utils.rs
 //! Utilities for parsing Nix code, unwrapping optional lambdas, and extracting key-value pairs.
 
-use std::{collections::HashMap, error::Error};
-use rnix::ast::{AttrSet, Expr, Entry, HasEntry};
-use rnix::Root;
 use crate::path_normalizer;
+use rnix::Root;
+use rnix::ast::{AttrSet, Entry, Expr, HasEntry};
+use std::{collections::HashMap, error::Error};
 
 /// Parses Nix code into an AST `Root`, checking for parse errors.
 fn parse_nix(code: &str) -> Result<Root, Box<dyn Error>> {
@@ -57,11 +57,7 @@ pub fn extract_kv_pairs(
 }
 
 /// Recursively traverses an `AttrSet` to flatten nested keys into the map.
-fn recurse_extract(
-    set: &AttrSet,
-    prefix: String,
-    map: &mut HashMap<String, Expr>,
-) {
+fn recurse_extract(set: &AttrSet, prefix: String, map: &mut HashMap<String, Expr>) {
     for entry in set.entries() {
         if let Entry::AttrpathValue(av) = entry {
             let ap = av.attrpath().unwrap();
