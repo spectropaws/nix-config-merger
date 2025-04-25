@@ -1,28 +1,28 @@
-use std::env;
-use std::fs;
+// src/main.rs
+// A CLI tool to merge two NixOS configuration files using our rnix-attempt library.
 
-use nix_merger::merge_nix_configs; 
+use std::error::Error;
+use std::{env, fs, process};
+use nix_config_merger::merge_configs;
 
-fn main() {
-    // Collect command line arguments
-    let args: Vec<String> = env::args().collect();
-
+fn main() -> Result<(), Box<dyn Error>> {
+    // Collect command-line arguments
+    let args: Vec<String> = env::args().collect();  
+    // Ensure exactly two input files are provided
     if args.len() != 3 {
-        eprintln!("Usage: {} <old_file> <new_file>", args[0]);
-        std::process::exit(1);
+        eprintln!("Usage: {} <old.nix> <new.nix>", args[0]);
+        process::exit(1);
     }
 
-    let old_path = &args[1];
-    let new_path = &args[2];
+    // Read the contents of both Nix config files
+    let old_nix = fs::read_to_string(&args[1])?;  
+    let new_nix = fs::read_to_string(&args[2])?;
 
-    match merge_nix_configs(old_path, new_path) {
-        Ok(merged) => {
-            println!("{}", merged);
-        }
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            std::process::exit(1);
-        }
-    }
+    // Merge using the library function
+    let merged = merge_configs(&old_nix, &new_nix)?;
+
+    // Print merged config to stdout
+    println!("{}", merged);
+
+    Ok(())
 }
-
